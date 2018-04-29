@@ -3,19 +3,21 @@
 "
 " Maintainer: Jake Soward <swekaj@gmail.com>
 "
-" Options: 
-"           b:phpfold_use = 1            - Fold groups of use statements in the global scope.
-"           b:phpfold_group_iftry = 0    - Fold if/elseif/else and try/catch/finally
-"                                          blocks as a group, rather than each part separate.
-"           b:phpfold_group_args = 1     - Group function arguments split across multiple
-"                                          lines into their own fold.
-"           b:phpfold_group_case = 1     - Fold case and default blocks inside switches.
-"           b:phpfold_heredocs = 1       - Fold HEREDOCs and NOWDOCs.
-"           b:phpfold_docblocks = 1      - Fold DocBlocks.
-"           b:phpfold_doc_with_funcs = 1 - Fold DocBlocks. Overrides b:phpfold_docblocks.
+" Options:
+"   b:phpfold_use = 1                   - Fold groups of use statements in the global scope.
+"   b:phpfold_group_iftry = 0           - Fold if/elseif/else and try/catch/finally
+"                                         blocks as a group, rather than each part separate.
+"   b:phpfold_group_args = 1            - Group function arguments split across multiple
+"                                         lines into their own fold.
+"   b:phpfold_group_case = 1            - Fold case and default blocks inside switches.
+"   b:phpfold_heredocs = 1              - Fold HEREDOCs and NOWDOCs.
+"   b:phpfold_docblocks = 1             - Fold DocBlocks.
+"   b:phpfold_doc_with_funcs = 1        - Fold DocBlocks. Overrides b:phpfold_docblocks.
+"   b:phpfold_doc_fixed_foldlevel = -1  - Allows to specify a fixed level
+"                                         for the docblocks, -1 to disable
 "
 " Known Bugs:
-"  - In switch statements, the closing } is included in the fold of the last case or 
+"  - In switch statements, the closing } is included in the fold of the last case or
 "    default block.
 setlocal foldmethod=expr
 setlocal foldexpr=GetPhpFold(v:lnum)
@@ -37,6 +39,9 @@ if !exists('b:phpfold_docblocks')
 endif
 if !exists('b:phpfold_doc_with_funcs')
     let b:phpfold_doc_with_funcs = 1
+endif
+if !exists('b:phpfold_doc_fixed_foldlevel')
+  let b:phpfold_doc_fixed_foldlevel = -1
 endif
 
 " If we want to fold functions with their blocks, we have to fold the blocks.
@@ -78,8 +83,8 @@ function! GetPhpFold(lnum)
     endif
 
     if line =~? '\v^\s*class\s+\k'
-        " The code inside the class or function determines the fold level, 
-        " and it starts after the curly.  However, the curly may not always 
+        " The code inside the class or function determines the fold level,
+        " and it starts after the curly.  However, the curly may not always
         " be right after the class or function declaration, so search for it.
         let nextCurly = FindNextDelimiter(a:lnum, '{')
         return '>' . IndentLevel(nextnonblank(nextCurly + 1))
@@ -93,7 +98,7 @@ function! GetPhpFold(lnum)
     endif
 
     if !b:phpfold_group_iftry
-        " If the next line is followed by an opening else, catch, or finally statement, then this 
+        " If the next line is followed by an opening else, catch, or finally statement, then this
         " line closes the current fold so that the else/catch/finally can open a new one.
         if getline(a:lnum+1) =~? '\v}\s*(else|catch|finally)'
             return '<' . IndentLevel(a:lnum)
@@ -103,14 +108,14 @@ function! GetPhpFold(lnum)
     if b:phpfold_docblocks
         " Cause indented multi-line comments (/* */) to be folded.
         if line =~? '\v^\s*/\*\*' && line !~? '\*/'
-            return '>'.(IndentLevel(a:lnum)+1)
+            return '>'. s:GetDockBlockFoldLevel()
         elseif line =~? '\v^\s*\*/@!' && IsDocBlock(a:lnum-1)
-            return IndentLevel(a:lnum)+1
+            return s:GetDockBlockFoldLevel()
         elseif line =~? '\v^\s*\*/'
             if b:phpfold_doc_with_funcs && getline(a:lnum+1) =~?  '\v\s*(abstract\s+|public\s+|private\s+|static\s+|private\s+)*function\s+(\k|\()'
-                return IndentLevel(a:lnum)+1
+                return s:GetDockBlockFoldLevel()
             else
-                return '<' . (IndentLevel(a:lnum)+1)
+                return '<' . s:GetDockBlockFoldLevel()
             endif
         endif
     endif
@@ -129,7 +134,7 @@ function! GetPhpFold(lnum)
     endif
 
     " If the line has an open ( ) or [ ] pair, it probably starts a fold
-    if line =~? '\v(\(|\[)[^\)\]]*$' 
+    if line =~? '\v(\(|\[)[^\)\]]*$'
         if b:phpfold_group_iftry && line =~? '\v}\s*(elseif|catch)'
             " But don't start a fold if we're grouping if/elseif/else and try/catch
             return IndentLevel(a:lnum)+1
@@ -144,7 +149,7 @@ function! GetPhpFold(lnum)
     if line =~? '\v^\s*default:'
         return '>' . (IndentLevel(a:lnum)+1)
     elseif line =~? '\v^\s*case\s*.*:'
-        if  getline(a:lnum-1) !~? '\v^\s*case\s*.*:' 
+        if  getline(a:lnum-1) !~? '\v^\s*case\s*.*:'
             return '>' .(IndentLevel(a:lnum)+1)
         else
             return IndentLevel(a:lnum)+1
@@ -158,7 +163,7 @@ function! GetPhpFold(lnum)
         elseif line =~? "<<<'[a-zA-Z_][a-zA-Z0-9_]*'$"
             return '>'.(IndentLevel(a:lnum)+1)
         elseif line =~? "^[a-zA-Z_][a-zA-Z0-9_]*;$"
-            " heredocs and now docs end the same way, so we have to check for both starts and see which 
+            " heredocs and now docs end the same way, so we have to check for both starts and see which
             " appeared latest in the file.  We then assume that one opened the fold.
             let heredoc = FindPrevDelimiter(a:lnum-1, '<<<'.strpart(line, 0, strlen(line)-1))
             let nowdoc = FindPrevDelimiter(a:lnum-1, "<<<'".strpart(line, 0, strlen(line)-1)."'")
@@ -176,6 +181,16 @@ function! GetPhpFold(lnum)
 
     if getline(a:lnum+1) =~? '\v^\s*}' && (IndentLevel(a:lnum)-IndentLevel(a:lnum+1)) > 1
         return '<' . IndentLevel(a:lnum)
+    endif
+
+    " -
+    "  Could improve the pattern but it does the work until now
+    "  This is usefull because I declare docblock with a hight foldlevel
+    "  Without the attributes have the foldlevel of the dockblock - 1
+    "  which is not convinient since the attributes declaration will be fold
+    ""
+    if getline(a:lnum) =~ '\v%(%(public|protected|private|static|const|var)\s+)+\$?\w+\s*%(\=|;)'
+      return IndentLevel(a:lnum)
     endif
 
     return '='
@@ -270,3 +285,13 @@ function! IsDocBlock(lnum)
 
     return 0
 endfunction
+
+if !exists('*s:GetDockBlockFoldLevel')
+  function! s:GetDockBlockFoldLevel()
+    if -1 != b:phpfold_doc_fixed_foldlevel
+      return b:phpfold_doc_fixed_foldlevel
+    endif
+
+    return IndentLevel(v:lnum) + 1
+  endfunction
+endif 
