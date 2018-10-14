@@ -46,7 +46,13 @@ endif
 
 " If we want to fold functions with their blocks, we have to fold the blocks.
 if b:phpfold_doc_with_funcs
-    let b:phpfold_docblocks = 1
+    let b:phpfold_docblocks           = 1
+    let b:phpfold_doc_fixed_foldlevel = -1
+endif
+
+if !exists('s:phpfold_class_pattern')
+  let s:phpfold_class_pattern  = '^\s*((abstract|final)\s+)?class\s+\k'
+  let s:phpfold_method_pattern = '^\s*(abstract\s+)?((private|protected|public)\s+)?(static\s+)?function\s+(\k|\()'
 endif
 
 function! GetPhpFold(lnum)
@@ -69,20 +75,25 @@ function! GetPhpFold(lnum)
         endif
     endif
 
+    " handle abstract method
+    if line =~? '\v' . s:phpfold_method_pattern . '.*;$'
+        if b:phpfold_doc_with_funcs
+          return '<' . IndentLevel(a:lnum)
+        endif
+
+        return IndentLevel(a:lnum)
+    endif
+
     " handle class methods and independent functions
-    if line =~? '\v\s*(abstract\s+|public\s+|private\s+|static\s+|private\s+)*function\s+(\k|\()' && line !~? ';$'
+    if line =~? '\v' . s:phpfold_method_pattern
         if b:phpfold_doc_with_funcs
             return IndentLevel(a:lnum)+1
-        else
-            return '>'.(IndentLevel(a:lnum)+1)
         endif
+
+        return '>'.(IndentLevel(a:lnum)+1)
     endif
 
-    if line =~? '\vfunction\s+(\k|\().*;$'
-        return '<'.(IndentLevel(a:lnum)+1)
-    endif
-
-    if line =~? '\v^\s*class\s+\k'
+    if line =~? '\v' . s:phpfold_class_pattern
         " The code inside the class or function determines the fold level,
         " and it starts after the curly.  However, the curly may not always
         " be right after the class or function declaration, so search for it.
@@ -112,7 +123,7 @@ function! GetPhpFold(lnum)
         elseif line =~? '\v^\s*\*/@!' && IsDocBlock(a:lnum-1)
             return s:GetDockBlockFoldLevel()
         elseif line =~? '\v^\s*\*/'
-            if b:phpfold_doc_with_funcs && getline(a:lnum+1) =~?  '\v\s*(abstract\s+|public\s+|private\s+|static\s+|private\s+)*function\s+(\k|\()'
+            if b:phpfold_doc_with_funcs && getline(a:lnum+1) =~?  '\v' . s:phpfold_method_pattern
                 return s:GetDockBlockFoldLevel()
             else
                 return '<' . s:GetDockBlockFoldLevel()
@@ -260,7 +271,7 @@ function! FindPrevClassFunc(lnum, ...)
     while current >= stopLine
         if getline(current) =~? '{'
             return -2
-        elseif getline(current) =~? '\v(^\s*class|\s*(abstract\s+|public\s+|private\s+|static\s+|private\s+)*function)\s+(\k|\()'
+        elseif getline(current) =~? '\v(' . s:phpfold_class_pattern . ')|(' . s:phpfold_method_pattern . '))'
             return current
         endif
 
@@ -294,4 +305,4 @@ if !exists('*s:GetDockBlockFoldLevel')
 
     return IndentLevel(v:lnum) + 1
   endfunction
-endif 
+endif
