@@ -51,7 +51,7 @@ if b:phpfold_doc_with_funcs
 endif
 
 if !exists('s:phpfold_class_pattern')
-  let s:phpfold_class_pattern  = '^\s*((((abstract|final)\s+)?class)|interface)\s+\k'
+  let s:phpfold_class_pattern  = '^\s*((((abstract|final)\s+)?class)|interface|trait)\s+\k'
   let s:phpfold_method_pattern = '^\s*(abstract\s+)?((private|protected|public)\s+)?(static\s+)?function\s+(\k|\()'
 endif
 
