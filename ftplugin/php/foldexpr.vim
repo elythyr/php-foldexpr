@@ -122,7 +122,7 @@ function! GetPhpFold(lnum)
             return '>'. s:GetDockBlockFoldLevel()
         elseif line =~? '\v^\s*\*/@!' && IsDocBlock(a:lnum-1)
             return s:GetDockBlockFoldLevel()
-        elseif line =~? '\v^\s*\*/'
+        elseif line =~? '\v^\s*\*/' && IsDocBlock(a:lnum-1)
             if b:phpfold_doc_with_funcs && getline(a:lnum+1) =~?  '\v' . s:phpfold_method_pattern
                 return s:GetDockBlockFoldLevel()
             else
