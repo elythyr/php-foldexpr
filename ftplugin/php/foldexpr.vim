@@ -53,6 +53,8 @@ endif
 if !exists('s:phpfold_class_pattern')
     let s:phpfold_class_pattern  = '^\s*((((abstract|final)\s+)?class)|interface|trait)\s+\k'
     let s:phpfold_method_pattern = '^\s*((abstract|final)\s+)?((private|protected|public)\s+)?(static\s+)?function\s+(\k|\()'
+    let s:phpfold_attribute_pattern = '^\s*(private|protected|public)\s+(static\s+)?((\k|\\)+\s+)?\$\k'
+    let s:phpfold_const_pattern = '^\s*((private|protected|public)\s+)?const\s+\k'
 endif
 
 function! GetPhpFold(lnum)
@@ -200,7 +202,8 @@ function! GetPhpFold(lnum)
     "  Without the attributes have the foldlevel of the dockblock - 1
     "  which is not convinient since the attributes declaration will be fold
     ""
-    if getline(a:lnum) =~ '\v%(%(public|protected|private|static|const|var)\s+)+\$?\w+\s*%(\=|;)'
+    if getline(a:lnum) =~? '\v'. s:phpfold_attribute_pattern
+        \ || getline(a:lnum) =~? '\v'. s:phpfold_const_pattern
       return IndentLevel(a:lnum)
     endif
 
