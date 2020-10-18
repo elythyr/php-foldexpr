@@ -19,6 +19,15 @@
 " Known Bugs:
 "  - In switch statements, the closing } is included in the fold of the last case or
 "    default block.
+
+" Defines a keyword accordingly to PHP labels definition:
+" https://www.php.net/manual/en/language.variables.basics.php
+" To be perfect I should use a regex to make sure that the first char is not a
+" number but I'm not here to validate the syntax and using `\k` in the
+" patterns is so much more convenient
+let s:iskeyword_save = &iskeyword
+set iskeyword=a-z,A-Z,_,128-255
+
 setlocal foldmethod=expr
 setlocal foldexpr=GetPhpFold(v:lnum)
 
@@ -309,3 +318,6 @@ if !exists('*s:GetDockBlockFoldLevel')
     return IndentLevel(v:lnum) + 1
   endfunction
 endif
+
+let &iskeyword = s:iskeyword_save
+unlet s:iskeyword_save
