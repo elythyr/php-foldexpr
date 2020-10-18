@@ -102,7 +102,7 @@ function! GetPhpFold(lnum)
     elseif line =~? '{' && line !~? '\v^\s*\*'
         " The fold level of the curly is determined by the next non-blank line
         return IndentLevel(a:lnum) + 1
-    elseif line =~? '\v^\s*\*@!\}(\s*(else|catch|finally))@!'
+    elseif line =~? '\v^\s*\*@!\}(\s*(else|elseif|catch|finally))@!'
         " The fold level the closing curly closes is determined by the previous non-blank line
         " But only if not followed by an else, catch, or finally
         return '<' . (IndentLevel(a:lnum)+1)
@@ -111,7 +111,7 @@ function! GetPhpFold(lnum)
     if !b:phpfold_group_iftry
         " If the next line is followed by an opening else, catch, or finally statement, then this
         " line closes the current fold so that the else/catch/finally can open a new one.
-        if getline(a:lnum+1) =~? '\v}\s*(else|catch|finally)'
+        if getline(a:lnum+1) =~? '\v}\s*(else|elseif|catch|finally)'
             return '<' . IndentLevel(a:lnum)
         endif
     endif
@@ -146,7 +146,7 @@ function! GetPhpFold(lnum)
 
     " If the line has an open ( ) or [ ] pair, it probably starts a fold
     if line =~? '\v(\(|\[)[^\)\]]*$'
-        if b:phpfold_group_iftry && line =~? '\v}\s*(elseif|catch)'
+        if b:phpfold_group_iftry && line =~? '\v}\s*(else|elseif|catch|finally)'
             " But don't start a fold if we're grouping if/elseif/else and try/catch
             return IndentLevel(a:lnum)+1
         else
