@@ -62,7 +62,7 @@ endif
 if !exists('s:class_pattern')
     let s:class_pattern  = '^\s*((((abstract|final)\s+)?class)|interface|trait)\s+\k'
     let s:method_pattern = '^\s*((abstract|final)\s+)?((private|protected|public)\s+)?(static\s+)?function\s+(\k|\()'
-    let s:attribute_pattern = '^\s*(private|protected|public)\s+(static\s+)?((\k|\\)+\s+)?\$\k'
+    let s:attribute_pattern = '^\s*(private|protected|public)\s+(static\s+)?(\??(\k|\\)+\s+)?\$\k'
     let s:const_pattern = '^\s*((private|protected|public)\s+)?const\s+\k'
 endif
 
